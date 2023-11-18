@@ -1,8 +1,11 @@
 /**
  * @name Snippets
  * @author Mercenary (mercenaryusa)
- * @description Allows you to create snippets of text that can be inserted into the chatbox by typing a macro.
+ * @authorId 188477001990930432
+ * @description Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand verison.
  * @version 0.0.1
+ * @website https://github.com/MercenaryUSA/snippets
+ * @source https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
  */
 
 const settings = BdApi.Data.load("Snippets", "settings");
@@ -14,11 +17,13 @@ const config = {
             {
                 name: "Mercenary (mercenaryusa)",
                 discord_id: "188477001990930432",
-                github_username: "mercenaryusa"
+                github_username: "MercenaryUSA",
             }
         ],
         version: "1.0.0",
-        description: "Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version."
+        description: "Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.",
+        github: "https://github.com/MercenaryUSA/snippets",
+        github_raw: "https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js"
     }
 }
 
