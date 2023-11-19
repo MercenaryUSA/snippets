@@ -2,13 +2,15 @@
  * @name Snippets
  * @author Mercenary (mercenaryusa)
  * @authorId 188477001990930432
- * @description Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand verison.
- * @version 0.0.1
+ * @invite betterrl
+ * @description Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.
+ * @version 1.0.0
  * @website https://github.com/MercenaryUSA/snippets
  * @source https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
+ * @updateUrl https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
  */
 
-const settings = BdApi.Data.load("Snippets", "settings");
+const settings = BdApi.Data.load("Snippets", "settings") || {};
 
 const config = {
     info: {
@@ -54,28 +56,28 @@ class Default {
     stop() { }
 }
 
-function appendMacro(key, value) {
-    const macro = Object.assign(document.createElement('div'), { className: `macro-key-${key}` });
-    const label = Object.assign(document.createElement('span'), { textContent: `Key: ${key}`, style: 'margin: 5px 0px 5px 5px; display: block' });
-    const input = Object.assign(document.createElement('input'), { type: 'text', name: 'macroKey', style: 'margin-left: 5px; width: 300px;', value });
+function appendSnippet(key, value) {
+    const snippet = Object.assign(document.createElement('div'), { className: `snippet-key-${key}`, style: 'border-bottom: 2px solid white;' });
+    const label = Object.assign(document.createElement('span'), { textContent: `Key: ${key}`, style: 'margin: 10px 0px 10px 5px; display: block' });
+    const input = Object.assign(document.createElement('input'), { type: 'text', name: 'snippetKey', style: 'margin-left: 5px; margin-bottom: 10px; width: 475px;', value });
     const button = Object.assign(document.createElement('button'), { textContent: 'Remove', style: 'margin-left: 5px;' });
     button.addEventListener('click', () => {
         delete settings[key];
         BdApi.Data.save("Snippets", "settings", settings);
-        macro.remove();
+        snippet.remove();
     });
     input.addEventListener('change', () => {
         settings[key] = input.value;
         BdApi.Data.save("Snippets", "settings", settings);
     });
-    macro.append(label, input, button);
-    return macro;
+    snippet.append(label, input, button);
+    return snippet;
 }
 
 module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
     const plugin = (Plugin, Api) => {
-        const { Patcher } = window.BdApi;
-        const { DiscordSelectors, DiscordModules } = Api;
+        const { UI, Patcher } = window.BdApi;
+        const { DiscordModules } = Api;
 
         return class Snippets extends Plugin {
             constructor() {
@@ -84,9 +86,15 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
 
             async onStart() {
                 Patcher.before(this.name, DiscordModules.MessageActions, "sendMessage", (_, [, msg]) => {
-                    for(const key in settings) {
-                        if(msg.content === key) {
-                            msg.content = msg.content.replace(key, settings[key]);
+                    for (const key in settings) {
+                        if (msg.content.includes(key)) {
+                            if (new RegExp(`\\b${key}\\b`).test(msg.content)) {
+                                msg.content = msg.content.replaceAll(key, settings[key]);
+                                UI.showToast(`Key '${key}' changed to '${settings[key]}'`, {
+                                    type: "info",
+                                    timeout: 3000
+                                });
+                            }
                         }
                     }
                 });
@@ -96,77 +104,86 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
                 Patcher.unpatchAll(this.name);
             }
 
-            observer(e) {
-                if (!e.addedNodes.length || !(e.addedNodes[0] instanceof Element)) return;
-
-                let textarea = document.querySelector(DiscordSelectors.Textarea.textArea);
-                let textbox = textarea.querySelector('[data-slate-string="true"]:last-of-type');
-
-                for(const key in settings) {
-                    if(textbox.innerHTML === key) {
-                        textbox.innerHTML = textbox.innerHTML.replace(key, settings[key]);
-                    }
-                }
-            }
-
             getSettingsPanel() {
                 const panel = document.createElement('div');
                 panel.id = 'snippet-settings';
 
-                const macroKeys = document.createElement('div');
-                macroKeys.classList.add('macro-keys');
+                const snippetKeys = document.createElement('div');
+                snippetKeys.classList.add('snippet-keys');
 
-                const newMacroKey = document.createElement('div');
-                newMacroKey.classList.add('new-macro');
+                const newSnippetKey = document.createElement('div');
+                newSnippetKey.classList.add('new-snippet');
 
-                const newMacroKeyLabel = document.createElement('span');
-                newMacroKeyLabel.textContent = 'Key:';
+                const newSnippetKeyLabel = document.createElement('span');
+                newSnippetKeyLabel.textContent = 'Key:';
 
-                const newMacroKeyInput = document.createElement('input');
-                newMacroKeyInput.type = 'text';
-                newMacroKeyInput.name = 'macroKey';
-                newMacroKeyInput.style.width = '100%';
-                newMacroKeyInput.style = 'margin-left: 5px;';
+                const newSnippetKeyInput = document.createElement('input');
+                newSnippetKeyInput.type = 'text';
+                newSnippetKeyInput.name = 'snippetKey';
+                //newSnippetKeyInput.style.width = '100%';
+                newSnippetKeyInput.style = 'margin-left: 17px;';
 
-                newMacroKey.append(newMacroKeyLabel, newMacroKeyInput);
+                newSnippetKey.style = 'margin-bottom: 5px;';
 
-                const newMacroValue = document.createElement('div');
-                newMacroValue.classList.add('new-macro');
+                newSnippetKey.append(newSnippetKeyLabel, newSnippetKeyInput);
 
-                const newMacroValueLabel = document.createElement('span');
-                newMacroValueLabel.textContent = 'Value:';
+                const newSnippetValue = document.createElement('div');
+                newSnippetValue.classList.add('new-snippet');
 
-                const newMacroValueInput = document.createElement('input');
-                newMacroValueInput.type = 'text';
-                newMacroValueInput.name = 'macroKey';
-                newMacroValueInput.style = 'margin-left: 5px; width: 300px;';
+                const newSnippetValueLabel = document.createElement('span');
+                newSnippetValueLabel.textContent = 'Value:';
 
-                const newMacroButton = document.createElement('button');
-                newMacroButton.textContent = 'Add Snippet';
-                newMacroButton.style = 'margin-left: 5px;';
-                newMacroButton.addEventListener('click', () => {
-                    settings[newMacroKeyInput.value] = newMacroValueInput.value;
+                const newSnippetValueInput = document.createElement('input');
+                newSnippetValueInput.type = 'text';
+                newSnippetValueInput.name = 'snippetKey';
+                newSnippetValueInput.style = 'margin-left: 5px; width: 410px;';
+
+                const newSnippetButton = document.createElement('button');
+                newSnippetButton.textContent = 'Add Snippet';
+                newSnippetButton.style = 'margin-left: 5px;';
+                newSnippetButton.addEventListener('click', () => {
+                    settings[newSnippetKeyInput.value] = newSnippetValueInput.value;
                     BdApi.Data.save("Snippets", "settings", settings);
 
-                    let newMacroItem = appendMacro(newMacroKeyInput.value, newMacroValueInput.value);
-                    macroKeys.append(newMacroItem);
+                    let newSnippetItem = appendSnippet(newSnippetKeyInput.value, newSnippetValueInput.value);
+                    snippetKeys.append(newSnippetItem);
+
+                    newSnippetKeyInput.value = '';
+                    newSnippetValueInput.value = '';
                 });
 
-                const newMacroDivider = document.createElement('hr');
+                const newSnippetDivider = document.createElement('hr');
 
-                const macroListHeader = document.createElement('label');
-                macroListHeader.style = 'margin-left: 5px; margin-bottom: 10px; font-size: 20px; font-weight: bold;';
-                macroListHeader.textContent = '--- Snippets ---';
+                const snippetListHeader = document.createElement('label');
+                snippetListHeader.style = 'margin-left: 200px; margin-bottom: 10px; font-size: 20px; font-weight: bold;';
+                snippetListHeader.textContent = '--- Snippets ---';
 
-                newMacroValue.append(newMacroValueLabel, newMacroValueInput, newMacroButton, newMacroDivider, macroListHeader);
+                newSnippetValue.append(newSnippetValueLabel, newSnippetValueInput, newSnippetButton, newSnippetDivider, snippetListHeader);
 
-                for(const setting in settings) {
-
-                    let newMacroItem = appendMacro(setting, settings[setting]);
-                    macroKeys.append(newMacroItem);
+                if (Object.keys(settings).length > 0) {
+                    for (const setting in settings) {
+                        let newSnippetItem = appendSnippet(setting, settings[setting]);
+                        snippetKeys.append(newSnippetItem);
+                    }
                 }
 
-                panel.append(newMacroKey, newMacroValue, macroKeys);
+                const infoSection = document.createElement('div');
+                infoSection.style = 'margin-top: 30px; padding-top: 10px; border-top: 1px solid black;';
+                infoSection.id = 'info-section';
+
+                const helperLabel = document.createElement('label');
+                helperLabel.style = 'font-style: italic; margin-left: 5px; color: #72767d;';
+                helperLabel.textContent = 'You can edit the values of any snippet and it automatically saves.';
+                infoSection.append(helperLabel);
+
+                const discordServer = document.createElement('a');
+                discordServer.href = 'https://discord.gg/betterrl';
+                discordServer.target = '_blank';
+                discordServer.style = 'margin-left: 5px; margin-top: 20px; color: #7289da; display: block;';
+                discordServer.textContent = 'Join my Discord server';
+                infoSection.append(discordServer);
+
+                panel.append(newSnippetKey, newSnippetValue, snippetKeys, infoSection);
                 return panel;
             }
         }
