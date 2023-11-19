@@ -25,8 +25,18 @@ const config = {
         version: "1.0.0",
         description: "Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.",
         github: "https://github.com/MercenaryUSA/snippets",
-        github_raw: "https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js"
-    }
+        github_raw: "https://raw.githubusercontent.com/MercenaryUSA/snippets/main/Snippets.plugin.js"
+    },
+    changelog: [
+        {
+            title: "Snippets has been released!",
+            type: "added",
+            items: [
+                "Core functionality is complete.",
+                "Contact me on Discord for any issues or suggestions. (mercenaryusa)"
+            ]
+        }
+    ]
 }
 
 if (!global.ZeresPluginLibrary) {
@@ -77,11 +87,12 @@ function appendSnippet(key, value) {
 module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
     const plugin = (Plugin, Api) => {
         const { UI, Patcher } = window.BdApi;
-        const { DiscordModules } = Api;
+        const { DiscordModules, PluginUpdater } = Api;
 
         return class Snippets extends Plugin {
             constructor() {
                 super();
+                PluginUpdater.checkForUpdate(config.info.name, config.info.version, config.info.github_raw);
             }
 
             async onStart() {
