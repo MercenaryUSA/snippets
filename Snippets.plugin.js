@@ -11,6 +11,7 @@
  */
 
 const settings = BdApi.Data.load("Snippets", "settings") || {};
+const versionInfo = BdApi.Data.load("Snippets", "currentVersionInfo") || {};
 
 const config = {
     info: {
@@ -22,22 +23,22 @@ const config = {
                 github_username: "MercenaryUSA",
             }
         ],
-        version: "1.0.0",
+        version: "1.0.1",
         description: "Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.",
         github: "https://github.com/MercenaryUSA/snippets",
         github_raw: "https://raw.githubusercontent.com/MercenaryUSA/snippets/main/Snippets.plugin.js"
     },
-    changelog: [
-        {
-            title: "Snippets has been released!",
-            type: "added",
-            items: [
-                "Core functionality is complete.",
-                "Contact me on Discord for any issues or suggestions. (mercenaryusa)"
-            ]
-        }
-    ]
+    lastUpdate: "11/19/2023 (MM/DD/YYYY)"
 }
+
+const changeLog = [
+    {
+        type: 'added',
+        items: [
+            'Custom changelog.'
+        ]
+    }
+]
 
 if (!global.ZeresPluginLibrary) {
     BdApi.showConfirmationModal("Library Missing", `The library plugin needed for ${config.name ?? config.info.name} is missing. Please click Download Now to install it.`, {
@@ -84,6 +85,113 @@ function appendSnippet(key, value) {
     return snippet;
 }
 
+function showChangelog() {
+    if(versionInfo.version == config.info.version) return;
+
+    const panel = document.createElement("div");
+    panel.style = "width: 100%; height: 100%; overflow-y: auto;";
+
+    const added = document.createElement("div");
+    added.style = "margin-bottom: 20px;";
+    const addedTitle = document.createElement("h2");
+    addedTitle.textContent = "ADDED";
+    addedTitle.style = "margin-bottom: 10px; color: green; font-weight: bold;";
+    added.append(addedTitle);
+    const addedList = document.createElement("ul");
+    added.append(addedList);
+
+    const changed = document.createElement("div");
+    changed.style = "margin-bottom: 20px;";
+    const changedTitle = document.createElement("h2");
+    changedTitle.textContent = "CHANGED";
+    changedTitle.style = "margin-bottom: 10px; color: yellow; font-weight: bold;";
+    changed.append(changedTitle);
+    const changedList = document.createElement("ul");
+    changed.append(changedList);
+
+    const fixed = document.createElement("div");
+    fixed.style = "margin-bottom: 20px;";
+    const fixedTitle = document.createElement("h2");
+    fixedTitle.textContent = "FIXED";
+    fixedTitle.style = "margin-bottom: 10px; color: orange; font-weight: bold;";
+    fixed.append(fixedTitle);
+    const fixedList = document.createElement("ul");
+    fixed.append(fixedList);
+
+    const removed = document.createElement("div");
+    removed.style = "margin-bottom: 20px;";
+    const removedTitle = document.createElement("h2");
+    removedTitle.textContent = "REMOVED";
+    removedTitle.style = "margin-bottom: 10px; color: red; font-weight: bold;";
+    removed.append(removedTitle);
+    const removedList = document.createElement("ul");
+    removed.append(removedList);
+
+    for (const change of changeLog) {
+        //this.BdApi.UI.showToast(change.type);
+        switch(change.type) {
+            case 'added':
+                for (const item of change.items) {
+                    const li = document.createElement("li");
+                    li.textContent = `- ${item}`;
+                    li.style = "margin-bottom: 8px; color: lightgrey;";
+                    addedList.append(li);
+                }
+                panel.append(added);
+                break;
+            case 'changed':
+                for (const item of change.items) {
+                    const li = document.createElement("li");
+                    li.textContent = `- ${item}`;
+                    li.style = "margin-bottom: 8px; color: lightgrey;";
+                    changedList.append(li);
+                }
+                panel.append(changed);
+                break;
+            case 'fixed':
+                for (const item of change.items) {
+                    const li = document.createElement("li");
+                    li.textContent = `- ${item}`;
+                    li.style = "margin-bottom: 8px; color: lightgrey;";
+                    fixedList.append(li);
+                }
+                panel.append(fixed);
+                break;
+            case 'removed':
+                for (const item of change.items) {
+                    const li = document.createElement("li");
+                    li.textContent = `- ${item}`;
+                    li.style = "margin-bottom: 8px; color: lightgrey;";
+                    removedList.append(li);
+                }
+                panel.append(removed);
+                break;
+        }
+    }
+
+    const versionLabel = document.createElement("span");
+    versionLabel.style = "font-size: 10px; color: grey;";
+    versionLabel.textContent = `Version: ${config.info.version}`;
+    panel.append(versionLabel);
+
+    const divider = document.createElement("br");
+    panel.append(divider);
+
+    const lastUpdateLabel = document.createElement("span");
+    lastUpdateLabel.style = "font-size: 10px; color: grey;";
+    lastUpdateLabel.textContent = `Updated On: ${config.lastUpdate}`;
+    panel.append(lastUpdateLabel);
+
+    this.BdApi.UI.showConfirmationModal(`${config.info.name} Changelog`, this.BdApi.React.createElement(this.BdApi.ReactUtils.wrapElement(panel)), {
+        confirmText: "Close",
+        cancelText: null,
+        onConfirm: () => {
+            versionInfo.version = config.info.version;
+            BdApi.Data.save("Snippets", "currentVersionInfo", versionInfo);
+        }
+    });
+}
+
 module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
     const plugin = (Plugin, Api) => {
         const { UI, Patcher } = window.BdApi;
@@ -93,6 +201,7 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
             constructor() {
                 super();
                 PluginUpdater.checkForUpdate(config.info.name, config.info.version, config.info.github_raw);
+                changeLog.length > 0 ? showChangelog() : _;
             }
 
             async onStart() {
