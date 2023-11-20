@@ -4,7 +4,7 @@
  * @authorId 188477001990930432
  * @invite betterrl
  * @description Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.
- * @version 1.0.0
+ * @version 1.0.1
  * @website https://github.com/MercenaryUSA/snippets
  * @source https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
  * @updateUrl https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
