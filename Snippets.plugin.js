@@ -4,13 +4,14 @@
  * @authorId 188477001990930432
  * @invite betterrl
  * @description Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.
- * @version 1.0.1
+ * @version 1.1.0
  * @website https://github.com/MercenaryUSA/snippets
  * @source https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
  * @updateUrl https://github.com/MercenaryUSA/snippets/blob/main/Snippets.plugin.js
  */
 
 const settings = BdApi.Data.load("Snippets", "settings") || {};
+const configuration = BdApi.Data.load("Snippets", "configuration") || { caseSensitive: true, showToasts: true };
 const versionInfo = BdApi.Data.load("Snippets", "currentVersionInfo") || {};
 
 const config = {
@@ -23,7 +24,7 @@ const config = {
                 github_username: "MercenaryUSA",
             }
         ],
-        version: "1.0.1",
+        version: "1.1.0",
         description: "Allows you to create snippets of text that can be inserted into the chatbox by typing a shorthand version.",
         github: "https://github.com/MercenaryUSA/snippets",
         github_raw: "https://raw.githubusercontent.com/MercenaryUSA/snippets/main/Snippets.plugin.js"
@@ -35,7 +36,14 @@ const changeLog = [
     {
         type: 'added',
         items: [
-            'Custom changelog.'
+            'Added a configuration option to make keys case sensitive.',
+            'Added a configuration option to show toasts when a snippet is changed.'
+        ]
+    },
+    {
+        type: 'changed',
+        items: [
+            'Styling of the settings panel has been improved.'
         ]
     }
 ]
@@ -70,8 +78,8 @@ class Default {
 function appendSnippet(key, value) {
     const snippet = Object.assign(document.createElement('div'), { className: `snippet-key-${key}`, style: 'border-bottom: 2px solid white;' });
     const label = Object.assign(document.createElement('span'), { textContent: `Key: ${key}`, style: 'margin: 10px 0px 10px 5px; display: block' });
-    const input = Object.assign(document.createElement('input'), { type: 'text', name: 'snippetKey', style: 'margin-left: 5px; margin-bottom: 10px; width: 475px;', value });
-    const button = Object.assign(document.createElement('button'), { textContent: 'Remove', style: 'margin-left: 5px;' });
+    const input = Object.assign(document.createElement('input'), { type: 'text', name: 'snippetKey', style: 'margin-left: 5px; margin-bottom: 10px; width: 510px; border: none !important; border-radius: 3px; background-color: #d1d1d1;', value });
+    const button = Object.assign(document.createElement('button'), { textContent: 'X', style: 'margin-left: 5px; border-radius: 2px; background-color: #d12600; color: white;' });
     button.addEventListener('click', () => {
         delete settings[key];
         BdApi.Data.save("Snippets", "settings", settings);
@@ -86,7 +94,7 @@ function appendSnippet(key, value) {
 }
 
 function showChangelog() {
-    if(versionInfo.version == config.info.version) return;
+    if (versionInfo.version == config.info.version) return;
 
     const panel = document.createElement("div");
     panel.style = "width: 100%; height: 100%; overflow-y: auto;";
@@ -129,7 +137,7 @@ function showChangelog() {
 
     for (const change of changeLog) {
         //this.BdApi.UI.showToast(change.type);
-        switch(change.type) {
+        switch (change.type) {
             case 'added':
                 for (const item of change.items) {
                     const li = document.createElement("li");
@@ -207,13 +215,15 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
             async onStart() {
                 Patcher.before(this.name, DiscordModules.MessageActions, "sendMessage", (_, [, msg]) => {
                     for (const key in settings) {
-                        if (msg.content.includes(key)) {
-                            if (new RegExp(`\\b${key}\\b`).test(msg.content)) {
-                                msg.content = msg.content.replaceAll(key, settings[key]);
-                                UI.showToast(`Key '${key}' changed to '${settings[key]}'`, {
-                                    type: "info",
-                                    timeout: 3000
-                                });
+                        if (configuration?.caseSensitive ? msg.content.includes(key) : msg.content.toLowerCase().includes(key.toLowerCase())) {
+                            if (new RegExp(`\\b${configuration?.caseSensitive ? key : key.toLowerCase()}\\b`).test(configuration?.caseSensitive ? msg.content : msg.content.toLowerCase())) {
+                                msg.content = configuration?.caseSensitive ? msg.content.replaceAll(key, settings[key]) : msg.content.toLowerCase().replaceAll(key.toLowerCase(), settings[key]);
+                                if (configuration?.showToasts) {
+                                    UI.showToast(`Key '${configuration?.caseSensitive ? key : key.toLowerCase()}' changed to '${settings[key]}'`, {
+                                        type: "info",
+                                        timeout: 3000
+                                    });
+                                }
                             }
                         }
                     }
@@ -225,6 +235,8 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
             }
 
             getSettingsPanel() {
+                // --- CREATE A NEW SNIPPET ---
+
                 const panel = document.createElement('div');
                 panel.id = 'snippet-settings';
 
@@ -240,8 +252,7 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
                 const newSnippetKeyInput = document.createElement('input');
                 newSnippetKeyInput.type = 'text';
                 newSnippetKeyInput.name = 'snippetKey';
-                //newSnippetKeyInput.style.width = '100%';
-                newSnippetKeyInput.style = 'margin-left: 17px;';
+                newSnippetKeyInput.style = 'margin-left: 17px; border: none !important; border-radius: 3px; background-color: #d1d1d1';
 
                 newSnippetKey.style = 'margin-bottom: 5px;';
 
@@ -256,11 +267,11 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
                 const newSnippetValueInput = document.createElement('input');
                 newSnippetValueInput.type = 'text';
                 newSnippetValueInput.name = 'snippetKey';
-                newSnippetValueInput.style = 'margin-left: 5px; width: 410px;';
+                newSnippetValueInput.style = 'margin-left: 5px; width: 410px; border: none !important; border-radius: 3px; background-color: #d1d1d1';
 
                 const newSnippetButton = document.createElement('button');
                 newSnippetButton.textContent = 'Add Snippet';
-                newSnippetButton.style = 'margin-left: 5px;';
+                newSnippetButton.style = 'margin-left: 5px; border-radius: 2px; background-color: #5F70AF; color: white;';
                 newSnippetButton.addEventListener('click', () => {
                     settings[newSnippetKeyInput.value] = newSnippetValueInput.value;
                     BdApi.Data.save("Snippets", "settings", settings);
@@ -273,6 +284,8 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
                 });
 
                 const newSnippetDivider = document.createElement('hr');
+
+                // --- APPEND SNIPPETS TO SETTINGS PANEL ---
 
                 const snippetListHeader = document.createElement('label');
                 snippetListHeader.style = 'margin-left: 200px; margin-bottom: 10px; font-size: 20px; font-weight: bold;';
@@ -287,14 +300,91 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
                     }
                 }
 
+                // --- CONFIGURATION SECTION ---
+
+                const configurationSection = document.createElement('div');
+                configurationSection.style = 'margin-top: 30px; padding-top: 10px; border-top: 1px solid black;';
+                configurationSection.id = 'configuration-section';
+
+                const configurationHeader = document.createElement('div');
+                configurationHeader.style = 'margin-left: 185px; margin-bottom: 10px; font-size: 20px; font-weight: bold;';
+                configurationHeader.textContent = '--- Configuration ---';
+
+                // Make keys case sensitive
+
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.style = 'margin-left: 5px; margin-top: 10px;';
+                checkboxContainer.id = 'checkbox-container';
+
+                const caseSensitiveCheckbox = document.createElement('input');
+                caseSensitiveCheckbox.id = "case-sensitive";
+                caseSensitiveCheckbox.type = 'checkbox';
+                caseSensitiveCheckbox.name = 'caseSensitive';
+                caseSensitiveCheckbox.style = 'height: 15px; width: 15px; margin-left: 5px;';
+                caseSensitiveCheckbox.checked = configuration?.caseSensitive;
+                caseSensitiveCheckbox.addEventListener('change', () => {
+                    configuration.caseSensitive = caseSensitiveCheckbox.checked;
+                    BdApi.Data.save("Snippets", "configuration", configuration);
+                });
+                checkboxContainer.append(caseSensitiveCheckbox);
+
+                const caseSensitiveLabel = document.createElement('label');
+                caseSensitiveLabel.htmlFor = "case-sensitive";
+                caseSensitiveLabel.style = 'margin-left: 5px; font-size: 20px;';
+                caseSensitiveLabel.textContent = 'Make keys case sensitive';
+                checkboxContainer.append(caseSensitiveLabel);
+
+                // ---------------------------
+
+                // Show toasts
+
+                const toastsContainer = document.createElement('div');
+                toastsContainer.style = 'margin-left: 5px; margin-top: 10px;';
+                toastsContainer.id = 'toasts-container';
+
+                const toastsCheckbox = document.createElement('input');
+                toastsCheckbox.id = "toasts";
+                toastsCheckbox.type = 'checkbox';
+                toastsCheckbox.name = 'toasts';
+                toastsCheckbox.style = 'height: 15px; width: 15px; margin-left: 5px;';
+                toastsCheckbox.checked = configuration?.showToasts;
+                toastsCheckbox.addEventListener('change', () => {
+                    configuration.showToasts = toastsCheckbox.checked;
+                    BdApi.Data.save("Snippets", "configuration", configuration);
+                });
+                toastsContainer.append(toastsCheckbox);
+
+                const toastsLabel = document.createElement('label');
+                toastsLabel.htmlFor = "toasts";
+                toastsLabel.style = 'margin-left: 5px; font-size: 20px;';
+                toastsLabel.textContent = 'Show toasts';
+                toastsContainer.append(toastsLabel);
+
+                const toastsSubLabel = document.createElement('label');
+                toastsSubLabel.htmlFor = "toasts";
+                toastsSubLabel.style = 'margin-left: 5px; font-size: 15px; color: whitesmoke; border-radius: 5px; background-color: #B95A0A; padding: 0px 3px 0px 3px;';
+                toastsSubLabel.textContent = 'Requires BetterDiscord toasts to be enabled';
+                toastsContainer.append(toastsSubLabel);
+
+                // ---------------------------
+
+                configurationSection.append(configurationHeader, checkboxContainer, toastsContainer);
+
+                // --- INFO SECTION ---
+
                 const infoSection = document.createElement('div');
-                infoSection.style = 'margin-top: 30px; padding-top: 10px; border-top: 1px solid black;';
+                infoSection.style = 'margin-top: 10px; padding-top: 10px; border-top: 1px solid black;';
                 infoSection.id = 'info-section';
 
-                const helperLabel = document.createElement('label');
-                helperLabel.style = 'font-style: italic; margin-left: 5px; color: #72767d;';
+                const helperLabel = document.createElement('div');
+                helperLabel.style = 'font-style: italic; margin: 5px 0px 10px 5px; color: #72767d;';
                 helperLabel.textContent = 'You can edit the values of any snippet and it automatically saves.';
                 infoSection.append(helperLabel);
+
+                const orderLabel = document.createElement('div');
+                orderLabel.style = 'font-style: italic; margin: 5px 0px 10px 5px; color: #72767d;';
+                orderLabel.textContent = 'Snippets are executed in the order they are listed.';
+                infoSection.append(orderLabel);
 
                 const discordServer = document.createElement('a');
                 discordServer.href = 'https://discord.gg/betterrl';
@@ -303,7 +393,7 @@ module.exports = !global.ZeresPluginLibrary ? Default : (([Plugin, Api]) => {
                 discordServer.textContent = 'Join my Discord server';
                 infoSection.append(discordServer);
 
-                panel.append(newSnippetKey, newSnippetValue, snippetKeys, infoSection);
+                panel.append(newSnippetKey, newSnippetValue, snippetKeys, configurationSection, infoSection);
                 return panel;
             }
         }
